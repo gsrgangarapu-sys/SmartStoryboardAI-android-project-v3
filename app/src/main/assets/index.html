@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Smart Storyboard AI</title>
+<style>
+:root{--bg:#050b1f;--card:#0d1a3a;--card2:#13234d;--tx:#eaf1ff;--mut:#8ea3cf;--cy:#22d3ee;--bl:#3b82f6;--ok:#34d399;--wa:#fb923c;--er:#f87171;--line:#1d2f5e;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%}
+body{background:#02060f;color:var(--tx);display:flex;justify-content:center;padding-top:env(safe-area-inset-top,0px)}
+#app{width:100%;max-width:430px;height:100%;background:var(--bg);display:flex;flex-direction:column}
+header{padding:12px 16px 6px;display:flex;justify-content:space-between;align-items:center}
+header h1{font-size:19px}header h1 span{color:var(--cy)}
+main{flex:1;overflow-y:auto;padding:4px 14px 16px}
+nav{display:flex;border-top:1px solid var(--line);background:#071029;padding-bottom:env(safe-area-inset-bottom,0px)}
+nav button{flex:1;background:none;border:0;color:var(--mut);padding:8px 0;font-size:10px;cursor:pointer}
+nav button b{display:block;font-size:18px;font-weight:400}nav button.on{color:var(--cy)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:11px 13px;margin-bottom:9px;word-break:break-word}
+.row{display:flex;align-items:center;gap:8px}.sp{justify-content:space-between}
+.m{color:var(--mut);font-size:12px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.stat{border-radius:14px;padding:11px 4px;text-align:center;font-size:12px}.stat b{display:block;font-size:21px}
+.tabs{display:flex;gap:6px;margin-bottom:10px;overflow-x:auto}
+.tabs button{flex:1;white-space:nowrap;padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--mut);cursor:pointer}
+.tabs button.on{background:var(--bl);color:#fff;border-color:var(--bl)}
+.tag{font-size:10px;padding:2px 7px;border-radius:6px;background:var(--card2);color:var(--cy);cursor:pointer}
+input,select,textarea{width:100%;padding:10px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--tx);font-size:15px;font-family:inherit;margin:3px 0 8px}
+.btn{background:var(--bl);color:#fff;border:0;border-radius:10px;padding:9px 13px;cursor:pointer;font-size:14px}
+.ghost{background:var(--card2);color:var(--tx);border:0;border-radius:10px;padding:9px 13px;cursor:pointer}
+.x{background:none;border:0;color:var(--er);font-size:16px;cursor:pointer;padding:6px}
+.mic{width:64px;height:64px;border-radius:50%;border:0;background:radial-gradient(circle,var(--cy),var(--bl));color:#fff;font-size:26px;cursor:pointer;display:block;margin:10px auto 4px}
+.mic.live{box-shadow:0 0 40px #22d3eecc}
+.bub{max-width:88%;padding:9px 12px;border-radius:14px;margin-bottom:8px;font-size:14px;line-height:1.4}
+.me{background:var(--bl);margin-left:auto}.ai{background:var(--card2)}
+.pos{color:var(--ok)}.neg{color:var(--er)}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);text-align:center;gap:3px;font-size:13px}
+.cal div{padding:8px 0;border-radius:50%;cursor:pointer}.cal .h{color:var(--mut);font-size:11px;cursor:default}
+.cal .sel{background:var(--bl)}.cal .ev{box-shadow:inset 0 -3px 0 var(--cy)}
+.tg{width:42px;height:24px;border-radius:12px;background:var(--line);position:relative;cursor:pointer;flex:none}
+.tg::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:.2s}
+.tg.on{background:var(--cy)}.tg.on::after{left:21px}
+#ov{display:none;position:fixed;inset:0;background:#000b;z-index:9;align-items:flex-end;justify-content:center}
+#ov.on{display:flex}
+.sheet{background:var(--bg);border:1px solid var(--line);width:100%;max-width:430px;max-height:90%;overflow-y:auto;border-radius:18px 18px 0 0;padding:16px}
+#toast{position:fixed;left:50%;bottom:80px;transform:translateX(-50%);background:var(--card2);border:1px solid var(--cy);padding:10px 14px;border-radius:12px;font-size:13px;max-width:90%;z-index:10;display:none}
+pre{background:var(--card);padding:8px;border-radius:10px;font-size:11px;white-space:pre-wrap;word-break:break-all;margin:6px 0}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,.tg:focus-visible{outline:2px solid var(--cy);outline-offset:2px}
+</style></head><body>
+<div id="app"><header><h1>Smart <span>Storyboard</span> AI</h1><span id="lang" class="tag" role="button" tabindex="0" aria-label="Switch language"></span></header>
+<main id="main"></main><nav id="nav"></nav></div>
+<div id="ov"></div><div id="toast" role="status"></div>
+<script>
+const K='ssb1',$=s=>document.querySelector(s),pad=n=>(n<10?'0':'')+n;
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const iso=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()),TODAY=()=>iso(new Date());
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const money=n=>'₹'+Number(n||0).toLocaleString('en-IN');
+const CATS=['Personal','Work','Finance','Important','Shopping'],TYPES=['Income','Expense','Refund','Transfer','Owed to me','I owe'],OTP=/\botp\b|one[- ]time (pass|code)|verification code|\b\d{4,8}\b is your/i;
+let D=(()=>{try{const d=JSON.parse(localStorage.getItem(K));if(d&&d.set)return d}catch(e){}return{msgs:[],ev:[],tx:[],set:{key:'',model:'gemini-2.5-flash',sheet:'',lang:'en',voice:true,synced:{},gok:0,sok:0,last:''}}})();
+D.set=Object.assign({token:'',apps:'com.whatsapp,com.whatsapp.w4b,org.telegram.messenger',auto:0},D.set);
+const save=()=>{try{localStorage.setItem(K,JSON.stringify(D))}catch(e){}try{alarms()}catch(e){}};
+const S={tab:0,flt:'All',q:'',sq:'',range:'Daily',fin:'All',y:new Date().getFullYear(),m:new Date().getMonth(),day:TODAY(),chat:[],listen:false,busy:false};
+const tabs=['Home','Storyboard','Inbox','Ask AI','Finance','Calendar','Settings'],ic=['⌂','▤','✉','✦','₹','▦','⚙'];
+const empty=t=>`<div class="card m">${t}</div>`,byT=(a,b)=>(a.date+(a.time||'')).localeCompare(b.date+(b.time||''));
+let tt;function toast(t){const e=$('#toast');e.textContent=t;e.style.display='block';clearTimeout(tt);tt=setTimeout(()=>e.style.display='none',3500)}
+const errMsg=e=>/fetch|network/i.test(e.message)?'No connection, or this page blocks network access. Use the installed Android app and check internet.':e.message;
+function closeF(){$('#ov').className='';$('#ov').innerHTML=''}
+function form(title,fields,cb,btn){const ov=$('#ov');ov.innerHTML=`<div class="sheet"><b>${esc(title)}</b>${fields.map(f=>`<label class="m" for="f_${f.k}">${f.l}</label>`+(f.t=='select'?`<select id="f_${f.k}">${f.o.map(o=>`<option ${o==f.v?'selected':''}>${esc(o)}</option>`).join('')}</select>`:f.t=='textarea'?`<textarea id="f_${f.k}" rows="${f.r||4}">${esc(f.v||'')}</textarea>`:`<input id="f_${f.k}" type="${f.t||'text'}" value="${esc(f.v||'')}" autocomplete="off">`)).join('')}<div class="row" style="margin-top:10px"><button class="btn" id="fs">${btn||'Save'}</button><button class="ghost" id="fc">Cancel</button></div></div>`;ov.className='on';$('#fc').onclick=closeF;$('#fs').onclick=()=>{const v={};fields.forEach(f=>v[f.k]=$('#f_'+f.k).value.trim());if(cb(v)!==false)closeF()}}
+const sure=(msg,cb)=>form(msg,[],()=>{cb()},'Yes, do it');
+function go(i){S.tab=i;draw()}
+// ---------- Gemini ----------
+async function gem(prompt,json){const s=D.set;if(!s.key)throw new Error('Add your Gemini API key in Settings first.');
+const r=await fetch('https://generativelanguage.googleapis.com/v1beta/models/'+encodeURIComponent(s.model)+':generateContent?key='+encodeURIComponent(s.key),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:json?{responseMimeType:'application/json'}:{}})});
+const j=await r.json();if(!r.ok)throw new Error((j.error&&j.error.message)||'Gemini error '+r.status);
+const p=j.candidates&&j.candidates[0]&&j.candidates[0].content&&j.candidates[0].content.parts;if(!p)throw new Error('Empty AI response');return p.map(x=>x.text||'').join('')}
+async function extractItems(m){
+const t=await gem(`Today is ${TODAY()}. Extract data from this message as JSON only: {"category":"Personal|Work|Finance|Important|Shopping","dates":[{"title":"","date":"YYYY-MM-DD","time":"HH:MM or empty"}],"payments":[{"title":"","amount":0,"due":"YYYY-MM-DD or empty"}]}. Use only facts stated in the text; use empty arrays if none. Message: """${m.text}"""`,1);
+const j=JSON.parse(t.replace(/```json|```/g,'').trim()),re=/^\d{4}-\d{2}-\d{2}$/,items=[];
+if(CATS.includes(j.category))m.cat=j.category;
+(Array.isArray(j.dates)?j.dates:[]).forEach(d=>{if(d&&re.test(d.date))items.push({kind:'event',title:String(d.title||'Event').slice(0,80),date:d.date,time:/^\d\d:\d\d$/.test(d.time)?d.time:'',src:m.id})});
+(Array.isArray(j.payments)?j.payments:[]).forEach(p=>{const a=Number(p&&p.amount);if(a>0)items.push({kind:'bill',title:String(p.title||'Payment').slice(0,80),date:re.test(p.due)?p.due:TODAY(),time:'',amount:a,src:m.id})});
+return items}
+async function extract(m){toast('AI is reading the message…');try{const items=await extractItems(m);save();draw();items.length?propose(items):toast('No dates or payments found')}catch(e){toast(errMsg(e))}}
+function propose(items){const ov=$('#ov');ov.innerHTML=`<div class="sheet"><b>Confirm what to add</b><div class="m" style="margin-bottom:8px">AI found these. Tick only the correct ones.</div>${items.map((x,i)=>`<label class="card row"><input type="checkbox" id="p${i}" style="width:auto" checked><span>${esc(x.title)}<div class="m">${x.kind} · ${x.date} ${x.time||''} ${x.amount?'· '+money(x.amount):''}</div></span></label>`).join('')}<div class="row"><button class="btn" id="fs">Add selected</button><button class="ghost" id="fc">Skip</button></div></div>`;ov.className='on';$('#fc').onclick=closeF;$('#fs').onclick=()=>{items.forEach((x,i)=>{if($('#p'+i).checked)D.ev.push({id:uid(),done:0,...x})});save();closeF();draw()}}
+// ---------- Voice ----------
+const tag=()=>D.set.lang=='te'?'te-IN':'en-IN';
+function speak(t){try{if(window.Android)Android.speak(t,tag());else if(window.speechSynthesis){const u=new SpeechSynthesisUtterance(t);u.lang=tag();speechSynthesis.speak(u)}}catch(e){}}
+function listen(){window.onSpeech=t=>{S.listen=false;draw();ask(t)};window.onSpeechError=m=>{S.listen=false;draw();toast(m||'Voice not available')};
+if(window.Android){S.listen=true;draw();Android.listen(tag());return}
+const R=window.SpeechRecognition||window.webkitSpeechRecognition;if(!R){toast('Voice input is not supported in this browser. Type instead.');return}
+const r=new R();r.lang=tag();r.onresult=e=>window.onSpeech(e.results[0][0].transcript);r.onerror=()=>window.onSpeechError('Could not hear you');r.onend=()=>{if(S.listen){S.listen=false;draw()}};S.listen=true;draw();r.start()}
+// ---------- Ask AI ----------
+function localAns(q){const l=q.toLowerCase(),t=TODAY(),open=D.ev.filter(e=>!e.done);
+if(/bill|due|pay/.test(l)){const b=open.filter(e=>e.kind=='bill');return b.length?'Pending bills: '+b.map(e=>`${e.title} ${money(e.amount)} due ${e.date}`).join('; '):'No pending bills.'}
+if(/spent|expense|money|balance|income/.test(l)){const f=T=>D.tx.filter(x=>x.type==T).reduce((a,x)=>a+x.amount,0);return `Income ${money(f('Income')+f('Refund'))}, expenses ${money(f('Expense'))}.`}
+const td=open.filter(e=>e.date==t);return `Today you have ${td.length} item(s)${td.length?': '+td.map(e=>e.title).join(', '):''}, and ${D.msgs.filter(m=>m.date==t).length} message(s) saved today.`}
+async function ask(q){S.chat.push({me:1,t:q});S.busy=true;draw();let a;
+try{if(D.set.key){const ctx=JSON.stringify({today:TODAY(),events:D.ev.slice(-80),messages:D.msgs.slice(0,30).map(m=>({date:m.date,from:m.sender,cat:m.cat,text:m.text.slice(0,200)})),transactions:D.tx.slice(-60)});
+a=await gem(`You are Smart Storyboard AI, a personal assistant. Answer ONLY from the user's data. If the data lacks the answer, say so. Never invent data. Reply in ${D.set.lang=='te'?'Telugu':'English'}, short and clear.\nDATA: ${ctx}\nQUESTION: ${q}`)}
+else a=localAns(q)+'\n\n(Add a Gemini key in Settings for smarter answers.)'}catch(e){a='⚠ '+errMsg(e)}
+S.busy=false;S.chat.push({t:a});draw();if(D.set.voice)speak(a)}
+// ---------- Sheets ----------
+async function post(tab,rows){const u=D.set.sheet;if(!u)throw new Error('Add your Google Apps Script URL in Settings first.');
+const r=await fetch(u,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({token:D.set.token,tab,rows})});const t=await r.text();if(!r.ok||t.trim()!='ok')throw new Error('Sheet replied: '+t.slice(0,80))}
+const TB={Messages:()=>D.msgs.map(m=>[m.id,m.at,m.source,m.sender,m.text,m.cat]),ImportantDates:()=>D.ev.filter(e=>e.kind!='reminder').map(e=>[e.id,e.title,e.date,e.time||'',e.kind,e.amount||'',e.done?'done':'open']),Reminders:()=>D.ev.filter(e=>e.kind=='reminder').map(e=>[e.id,e.title,e.date,e.time||'',e.done?'done':'open']),Finance:()=>D.tx.map(t=>[t.id,t.date,t.type,t.person||'',t.amount,'INR',t.cat||'',t.note||'']),People:()=>[...new Set(D.msgs.map(m=>m.sender))].map(n=>['p:'+n,n]),DailySummary:()=>[[TODAY(),D.msgs.filter(m=>m.date==TODAY()).length,D.ev.filter(e=>e.date==TODAY()).length]]};
+async function sync(quiet){if(!D.set.sheet){if(!quiet)toast('Add your Apps Script URL in Settings first.');return}
+try{let n=0;for(const tab in TB){const rows=TB[tab]().filter(r=>!D.set.synced[tab+r[0]]);if(rows.length){await post(tab,rows);rows.forEach(r=>D.set.synced[tab+r[0]]=1);n+=rows.length}}
+D.set.sok=1;D.set.last=new Date().toLocaleString();save();if(!quiet)toast(n?`Synced ${n} new record(s).`:'Already up to date.');if(S.tab==6)draw()}catch(e){D.set.sok=0;save();if(!quiet)toast('Sync failed, will retry: '+errMsg(e))}}
+// ---------- Actions ----------
+function addMsg(){form('Add message',[{k:'source',l:'Source',t:'select',o:['WhatsApp','SMS','Email','Other']},{k:'sender',l:'Sender'},{k:'text',l:'Message text (paste it here)',t:'textarea'},{k:'cat',l:'Category',t:'select',o:CATS}],v=>{if(!v.text){toast('Enter the message text');return false}if(OTP.test(v.text)){toast('OTP/verification messages are excluded for safety');return false}
+const m={id:uid(),date:TODAY(),at:new Date().toISOString(),source:v.source,sender:v.sender||'Unknown',text:v.text,cat:v.cat};D.msgs.unshift(m);save();draw();if(D.set.key)extract(m)})}
+function addEv(e){e=e||{};form(e.id?'Edit item':'Add reminder / event / bill',[{k:'title',l:'Title',v:e.title},{k:'kind',l:'Type',t:'select',o:['reminder','event','bill'],v:e.kind},{k:'date',l:'Date',t:'date',v:e.date||S.day},{k:'time',l:'Time (optional)',t:'time',v:e.time},{k:'amount',l:'Amount (bills only)',t:'number',v:e.amount}],v=>{if(!v.title||!v.date){toast('Title and date are required');return false}
+const o={title:v.title,kind:v.kind,date:v.date,time:v.time,amount:v.kind=='bill'?Number(v.amount)||0:0};if(e.id)Object.assign(e,o);else D.ev.push({id:uid(),done:0,...o});save();draw()})}
+function addTx(){form('Add money record',[{k:'type',l:'Type',t:'select',o:TYPES},{k:'amount',l:'Amount (₹)',t:'number'},{k:'person',l:'Person / shop'},{k:'cat',l:'Category'},{k:'note',l:'Note'},{k:'date',l:'Date',t:'date',v:TODAY()}],v=>{const a=Number(v.amount);if(!(a>0)){toast('Enter an amount above 0');return false}
+D.tx.unshift({id:uid(),type:v.type,amount:a,person:v.person,cat:v.cat,note:v.note,date:v.date||TODAY()});save();draw()})}
+function done(id){const e=D.ev.find(x=>x.id==id);e.done=1;if(e.kind=='bill'&&e.amount)D.tx.unshift({id:uid(),type:'Expense',amount:e.amount,person:e.title,cat:'Bill',note:'Paid',date:TODAY()});save();draw()}
+const del=(k,id)=>sure('Delete this item?',()=>{D[k]=D[k].filter(x=>x.id!=id);save();draw()});
+const evCard=e=>`<div class="card row sp"><div onclick="addEv(D.ev.find(x=>x.id=='${e.id}'))"><b>${esc(e.title)}</b><div class="m">${e.date} ${e.time||''} · ${e.kind}${e.amount?' · '+money(e.amount):''}${e.done?' · done':''}</div></div><div class="row">${e.done?'':`<button class="btn" onclick="done('${e.id}')">${e.kind=='bill'?'Paid':'Done'}</button>`}<button class="x" aria-label="Delete" onclick="del('ev','${e.id}')">✕</button></div></div>`;
+// ---------- Views ----------
+function home(){const t=TODAY(),open=D.ev.filter(e=>!e.done),td=open.filter(e=>e.date==t).sort(byT),od=open.filter(e=>e.date<t),pend=open.filter(e=>e.kind=='bill').reduce((a,b)=>a+(+b.amount||0),0),h=new Date().getHours();
+return `<div class="card"><b>${D.set.lang=='te'?'నమస్కారం!':h<12?'Good morning!':h<17?'Good afternoon!':'Good evening!'}</b><div class="m">${new Date().toDateString()}</div></div>
+<div class="stats"><div class="stat" style="background:#1d4ed8"><b>${D.msgs.filter(m=>m.date==t).length}</b>Messages today</div><div class="stat" style="background:#059669"><b>${td.length}</b>Due today</div><div class="stat" style="background:#ea580c"><b>${money(pend)}</b>Bills pending</div></div>
+${od.length?`<div class="card" style="border-color:var(--er)"><b class="neg">${od.length} overdue</b><div class="m">${od.slice(0,3).map(e=>esc(e.title)).join(', ')}</div></div>`:''}
+<b>Today</b><div style="height:6px"></div>${td.length?td.map(evCard).join(''):empty('Nothing due today. Add a reminder to get started.')}
+<div class="row" style="margin:6px 0"><button class="btn" onclick="addEv()">+ Reminder</button><button class="btn" onclick="addMsg()">+ Message</button><button class="btn" onclick="addTx()">+ Money</button></div>
+<button class="ghost" style="width:100%" onclick="go(3);ask('Give my daily briefing for today')">🎙 Daily briefing</button>`}
+function story(){const t=new Date(),td=iso(t);let from=td,to=td;if(S.range=='Weekly'){const a=new Date(t);a.setDate(a.getDate()-6);from=iso(a)}if(S.range=='Monthly')from=td.slice(0,8)+'01',to=td.slice(0,8)+'31';
+const q=S.sq.toLowerCase();let it=[...D.msgs.map(m=>({d:m.date,t:m.at.slice(11,16),i:'✉',a:m.sender,b:m.text.slice(0,90)})),...D.ev.map(e=>({d:e.date,t:e.time,i:e.kind=='bill'?'₹':'⏰',a:e.title,b:e.kind+(e.done?' · done':'')})),...D.tx.map(x=>({d:x.date,t:'',i:'₹',a:x.type+' '+money(x.amount),b:x.person||''}))].filter(x=>x.d>=from&&(S.range=='Daily'?x.d<=to:x.d<=(S.range=='Weekly'?to:to))&&(x.a+x.b).toLowerCase().includes(q));
+if(S.range=='Weekly')it=it.filter(x=>x.d<=td);it.sort((a,b)=>(b.d+b.t).localeCompare(a.d+a.t));
+return `<input aria-label="Search" placeholder="Search your storyboard" value="${esc(S.sq)}" oninput="S.sq=this.value;draw(1)"><div class="tabs">${['Daily','Weekly','Monthly'].map(r=>`<button class="${S.range==r?'on':''}" onclick="S.range='${r}';draw()">${r}</button>`).join('')}</div>`+
+(it.length?it.map(x=>`<div class="card row"><span style="font-size:20px">${x.i}</span><div><b>${esc(x.a)}</b><div class="m">${x.d} ${x.t||''} · ${esc(x.b)}</div></div></div>`).join(''):empty('Nothing here yet. Add messages, reminders or money records and they appear on your storyboard.'))}
+function inbox(){const q=S.q.toLowerCase(),l=D.msgs.filter(m=>(S.flt=='All'||m.cat==S.flt)&&(m.sender+m.text).toLowerCase().includes(q));
+return `<div class="row sp" style="margin-bottom:6px"><b>Smart Inbox</b><button class="btn" onclick="addMsg()">+ Add</button></div><input aria-label="Search" placeholder="Search messages" value="${esc(S.q)}" oninput="S.q=this.value;draw(1)"><div class="tabs">${['All',...CATS].map(r=>`<button class="${S.flt==r?'on':''}" onclick="S.flt='${r}';draw()">${r}</button>`).join('')}</div>`+
+(l.length?l.map(m=>`<div class="card"><div class="row sp"><b>${esc(m.sender)}</b><span class="m">${m.source} · ${m.date}</span></div><div style="margin:5px 0;font-size:14px">${esc(m.text)}</div><div class="row"><span class="tag">${m.cat}</span>${D.set.key?`<span class="tag" onclick="extract(D.msgs.find(x=>x.id=='${m.id}'))">✦ Extract dates</span>`:''}<span style="flex:1"></span><button class="x" aria-label="Delete" onclick="del('msgs','${m.id}')">✕</button></div></div>`).join(''):empty('No messages yet. Tap + Add and paste a WhatsApp, SMS or email text. OTP messages are blocked.'))}
+function askUI(){return (S.chat.length?S.chat.map(c=>`<div class="bub ${c.me?'me':'ai'}">${esc(c.t).replace(/\n/g,'<br>')}</div>`).join(''):empty('Ask in English or తెలుగు, by typing or with the mic. Example: “What bills are due?”'))+(S.busy?'<div class="m">Thinking…</div>':'')+
+`<div class="row" style="margin-top:8px"><input id="qi" aria-label="Ask AI" placeholder="Ask anything…" onkeydown="if(event.key=='Enter'&&this.value){const v=this.value;this.value='';ask(v)}"><button class="btn" onclick="const v=$('#qi').value;if(v){$('#qi').value='';ask(v)}">Send</button></div><button class="mic ${S.listen?'live':''}" aria-label="Speak" onclick="listen()">🎙</button><div class="m" style="text-align:center">${S.listen?'Listening…':'Tap to speak'}</div>`}
+function fin(){const f=T=>D.tx.filter(x=>x.type==T).reduce((a,x)=>a+x.amount,0),inc=f('Income')+f('Refund'),ex=f('Expense'),pend=D.ev.filter(e=>e.kind=='bill'&&!e.done).reduce((a,b)=>a+(+b.amount||0),0),l=D.tx.filter(x=>S.fin=='All'||x.type==S.fin);
+return `<div class="row sp" style="margin-bottom:6px"><b>Finance</b><button class="btn" onclick="addTx()">+ Add</button></div><div class="card"><div class="m">Balance (income − expenses)</div><b style="font-size:30px">${money(inc-ex)}</b></div>
+<div class="stats"><div class="card"><div class="m">Income</div><b class="pos">${money(inc)}</b></div><div class="card"><div class="m">Expenses</div><b class="neg">${money(ex)}</b></div><div class="card"><div class="m">Bills due</div><b style="color:var(--wa)">${money(pend)}</b></div></div>
+<div class="card row sp"><span class="m">Owed to me</span><b>${money(f('Owed to me'))}</b><span class="m">I owe</span><b>${money(f('I owe'))}</b></div>
+<select aria-label="Filter" onchange="S.fin=this.value;draw()">${['All',...TYPES].map(t=>`<option ${S.fin==t?'selected':''}>${t}</option>`).join('')}</select>`+
+(l.length?l.map(t=>`<div class="card row sp"><div><b>${esc(t.person||t.type)}</b><div class="m">${t.date} · ${t.type}${t.note?' · '+esc(t.note):''}</div></div><div class="row"><b class="${['Income','Refund'].includes(t.type)?'pos':t.type=='Expense'?'neg':''}">${money(t.amount)}</b><button class="x" aria-label="Delete" onclick="del('tx','${t.id}')">✕</button></div></div>`).join(''):empty('No records yet. Only add confirmed amounts. Tap + Add.'))}
+function calv(){const first=new Date(S.y,S.m,1).getDay(),n=new Date(S.y,S.m+1,0).getDate();let h=['S','M','T','W','T','F','S'].map(d=>`<div class="h">${d}</div>`).join('')+'<div></div>'.repeat(first);
+for(let d=1;d<=n;d++){const k=S.y+'-'+pad(S.m+1)+'-'+pad(d);h+=`<div class="${k==S.day?'sel ':''}${D.ev.some(e=>e.date==k)?'ev':''}" onclick="S.day='${k}';draw()">${d}</div>`}
+const l=D.ev.filter(e=>e.date==S.day).sort(byT);
+return `<div class="card"><div class="row sp"><button class="ghost" aria-label="Previous month" onclick="S.m--;if(S.m<0){S.m=11;S.y--}draw()">‹</button><b>${new Date(S.y,S.m,1).toLocaleString('en',{month:'long',year:'numeric'})}</b><button class="ghost" aria-label="Next month" onclick="S.m++;if(S.m>11){S.m=0;S.y++}draw()">›</button></div><div class="cal" style="margin-top:8px">${h}</div></div>
+<div class="row sp" style="margin-bottom:6px"><b>${S.day}</b><button class="btn" onclick="addEv()">+ Add</button></div>${l.length?l.map(evCard).join(''):empty('Nothing planned this day.')}`}
+const SCRIPT=`var TOKEN='CHANGE_THIS_SECRET';
+function out(o){return ContentService.createTextOutput(typeof o=='string'?o:JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON)}
+function doPost(e){var d=JSON.parse(e.postData.contents);if(d.token!==TOKEN)return out('denied');var ss=SpreadsheetApp.getActiveSpreadsheet(),sh=ss.getSheetByName(d.tab)||ss.insertSheet(d.tab),ids=sh.getLastRow()?sh.getRange(1,1,sh.getLastRow(),1).getValues().map(function(r){return String(r[0])}):[];d.rows.forEach(function(r){if(ids.indexOf(String(r[0]))<0)sh.appendRow(r)});return ContentService.createTextOutput('ok')}
+function doGet(e){var p=e.parameter;if(p.token!==TOKEN)return out({error:'denied'});var r=[];
+if(p.action=='gmail')GmailApp.search('in:inbox newer_than:7d',0,25).forEach(function(t){var m=t.getMessages().pop();r.push({id:t.getId(),from:m.getFrom(),subject:t.getFirstMessageSubject(),body:m.getPlainBody().slice(0,500),at:m.getDate().toISOString()})});
+if(p.action=='calendar'){var n=new Date();CalendarApp.getDefaultCalendar().getEvents(n,new Date(n.getTime()+2592e6)).forEach(function(v){r.push({id:v.getId(),title:v.getTitle(),start:v.getStartTime().toISOString(),allDay:v.isAllDayEvent()})})}
+if(p.action=='ping')r={ok:1};return out(r)}`;
+const setv=(k,v)=>{D.set[k]=v.trim();if(k=='key'||k=='model')D.set.gok=0;if(k=='sheet')D.set.sok=0;save()};
+const st=(ok,has)=>`<span class="dot" style="background:${ok?'var(--ok)':has?'var(--wa)':'var(--er)'}"></span>${ok?'Working':has?'Saved, not tested':'Not connected'}`;
+function sett(){const s=D.set;return `<div class="card"><b>Gemini AI</b> <span class="m">${st(s.gok,s.key)}</span>
+<input type="password" aria-label="Gemini API key" placeholder="Paste Gemini API key (from aistudio.google.com)" value="${esc(s.key)}" onchange="setv('key',this.value);draw()"><input aria-label="Model" value="${esc(s.model)}" onchange="setv('model',this.value);draw()"><button class="btn" onclick="gem('Reply with OK').then(()=>{D.set.gok=1;save();draw();toast('Gemini works')}).catch(e=>toast(errMsg(e)))">Test Gemini</button></div>
+<div class="card"><b>Google Sheets</b> <span class="m">${st(s.sok,s.sheet)}</span><div class="m">Last sync: ${esc(s.last||'never')}</div>
+<input aria-label="Apps Script URL" placeholder="Paste Apps Script web app URL" value="${esc(s.sheet)}" onchange="setv('sheet',this.value);draw()"><input type="password" aria-label="Secret token" placeholder="Secret token (same word as in the script)" value="${esc(s.token)}" onchange="setv('token',this.value);draw()"><div class="row"><button class="btn" onclick="sync()">Sync now</button><button class="ghost" onclick="post('ConnectionTest',[[uid(),new Date().toISOString()]]).then(()=>{D.set.sok=1;save();draw();toast('Sheet works')}).catch(e=>toast(errMsg(e)))">Test</button></div>
+<details style="margin-top:8px"><summary class="m">How to connect (one time)</summary><div class="m">1. Create a Google Sheet. 2. Extensions › Apps Script. 3. Paste this code, change CHANGE_THIS_SECRET to your own secret word, Save. 4. Deploy › New deployment › Web app › Execute as: Me, Access: Anyone, then approve Google's permission screen (Sheets, Gmail, Calendar). 5. Paste the URL and the same secret above. Keep the URL private.</div><pre>${esc(SCRIPT)}</pre><button class="ghost" onclick="navigator.clipboard.writeText(SCRIPT).then(()=>toast('Code copied'))">Copy code</button></details></div>
+${nat()}<div class="card"><b>Gmail & Google Calendar</b><div class="m">Read-only, through your Apps Script above (same URL and token).</div><div class="row" style="flex-wrap:wrap;margin-top:6px"><button class="btn" onclick="importGmail()">Import Gmail</button><button class="btn" onclick="importCal()">Import Calendar</button><button class="ghost" onclick="gGet('ping').then(()=>toast('Script connected')).catch(e=>toast(errMsg(e)))">Test</button></div></div>
+<div class="card row sp"><div><b>AI reads new messages</b><div class="m">Needs a Gemini key. You still confirm every date and payment.</div></div><div class="tg ${s.auto?'on':''}" role="switch" tabindex="0" aria-checked="${!!s.auto}" aria-label="AI reads new messages" onclick="D.set.auto=D.set.auto?0:1;save();draw()"></div></div>
+<div class="card row sp"><div><b>Spoken answers</b><div class="m">Telugu voice needs Telugu voice data on your phone</div></div><div class="tg ${s.voice?'on':''}" role="switch" tabindex="0" aria-checked="${s.voice}" aria-label="Spoken answers" onclick="D.set.voice=!D.set.voice;save();draw()"></div></div>
+<div class="card"><b>Your data</b><div class="m">Stored only on this device (${D.msgs.length} messages, ${D.ev.length} items, ${D.tx.length} records). The API key never leaves your phone except to call Google.</div><div class="row" style="margin-top:8px"><button class="ghost" onclick="form('Backup (copy this text)',[{k:'j',l:'Backup JSON',t:'textarea',r:8,v:JSON.stringify(D)}],()=>{},'Close')">Backup</button><button class="ghost" onclick="form('Restore (paste backup)',[{k:'j',l:'Backup JSON',t:'textarea',r:8}],v=>{try{const d=JSON.parse(v.j);if(!d.set||!Array.isArray(d.msgs))throw 0;D=d;save();draw();toast('Restored')}catch(e){toast('Not a valid backup');return false}},'Restore')">Restore</button><button class="x" onclick="sure('Erase ALL data on this device?',()=>{D.msgs=[];D.ev=[];D.tx=[];D.set.synced={};save();draw()})">Erase all</button></div></div>
+<div class="card m">Notifications, SMS and reminder alerts work in the background in the Android app. Gmail and Calendar are fetched while the app is open.</div>`}
+
+const alarms=()=>{if(!window.Android)return;const now=Date.now();Android.setAlarms(JSON.stringify(D.ev.filter(e=>!e.done&&e.date).map(e=>({id:e.id,title:(e.kind=='bill'?'Bill due: ':'')+e.title,at:new Date(e.date+'T'+(e.time||'09:00')).getTime()})).filter(a=>a.at>now)))};
+function ingest(l){const add=[];l.forEach(x=>{if(!x.text||OTP.test(x.text)||D.msgs.some(m=>m.id==x.id))return;const at=x.at||new Date().toISOString(),m={id:x.id,date:iso(new Date(at)),at,source:x.source,sender:x.sender||'Unknown',text:String(x.text).slice(0,600),cat:x.cat||'Personal'};D.msgs.unshift(m);add.push(m)});if(add.length){save();draw();if(D.set.auto&&D.set.key)autoX(add.slice(0,5))}return add.length}
+async function autoX(l){const all=[];for(const m of l){try{all.push(...await extractItems(m))}catch(e){toast(errMsg(e));break}}save();draw();if(all.length)propose(all)}
+function drain(){if(!window.Android)return;try{const l=JSON.parse(Android.drain());if(l.length)ingest(l)}catch(e){}}
+async function gGet(a){const u=D.set.sheet;if(!u)throw new Error('Add your Apps Script URL in Settings first.');if(!D.set.token)throw new Error('Add your secret token in Settings first.');
+const r=await fetch(u+(u.includes('?')?'&':'?')+'action='+a+'&token='+encodeURIComponent(D.set.token));const j=await r.json();if(j.error)throw new Error('Script says: '+j.error);return j}
+async function importGmail(q){try{const l=await gGet('gmail'),n=ingest(l.map(x=>({id:'g:'+x.id,source:'Gmail',sender:String(x.from).replace(/<.*>/,'').trim()||x.from,text:(x.subject+' — '+x.body).replace(/\s+/g,' '),at:x.at})));if(!q)toast(n?`Imported ${n} email(s).`:'No new emails.')}catch(e){if(!q)toast(errMsg(e))}}
+async function importCal(q){try{const l=await gGet('calendar');let n=0;l.forEach(x=>{const id='c:'+x.id;if(D.ev.some(e=>e.id==id))return;const d=new Date(x.start);D.ev.push({id,done:0,kind:'event',title:x.title,date:iso(d),time:x.allDay?'':pad(d.getHours())+':'+pad(d.getMinutes())});n++});save();draw();if(!q)toast(n?`Imported ${n} event(s).`:'No new events.')}catch(e){if(!q)toast(errMsg(e))}}
+function nat(){if(!window.Android)return `<div class="card m">Reading phone notifications and SMS, and reminder alerts while the app is closed, need the installed Android app. This web version cannot do them.</div>`;
+let s={};try{s=JSON.parse(Android.status())}catch(e){}
+const ok=(v,t)=>`<div class="row sp"><span>${t}</span><span class="m"><span class="dot" style="background:${v?'var(--ok)':'var(--er)'}"></span>${v?'On':'Off'}</span></div>`;
+return `<div class="card"><b>Phone access</b>${ok(s.notif,'Notification access')}${ok(s.sms,'SMS permission')}${ok(s.post,'Alerts permission')}${ok(s.exact,'Exact reminders')}
+<div class="m" style="margin:8px 0 2px">Apps to read (package names, comma separated)</div><input aria-label="Apps" value="${esc(D.set.apps)}" onchange="setv('apps',this.value);Android.setApps(D.set.apps)">
+<div class="row" style="flex-wrap:wrap"><button class="btn" onclick="Android.openNotifAccess()">Notification access</button><button class="btn" onclick="Android.requestPerms()">Allow SMS & alerts</button><button class="ghost" onclick="Android.openExact()">Exact alarms</button><button class="ghost" onclick="try{toast(ingest(JSON.parse(Android.importSms(150)))+' SMS imported')}catch(e){toast('Allow SMS first')}">Import SMS</button></div></div>`}
+const V=[home,story,inbox,askUI,fin,calv,sett];
+function draw(keep){$('#lang').textContent=D.set.lang=='te'?'తె':'EN';$('#nav').innerHTML=tabs.map((t,i)=>`<button class="${S.tab==i?'on':''}" onclick="go(${i})"><b>${ic[i]}</b>${t}</button>`).join('');
+const m=$('#main'),y=m.scrollTop;m.innerHTML=V[S.tab]();if(keep){const i=m.querySelector('input');if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length)}m.scrollTop=y}else m.scrollTop=S.tab==3?m.scrollHeight:0}
+$('#lang').onclick=()=>{D.set.lang=D.set.lang=='te'?'en':'te';save();draw()};
+const fired={};setInterval(()=>{const n=new Date(),t=TODAY(),hm=pad(n.getHours())+':'+pad(n.getMinutes());D.ev.forEach(e=>{if(!e.done&&e.date==t&&e.time&&e.time<=hm&&!fired[e.id]){fired[e.id]=1;toast('⏰ '+e.title);if(D.set.voice)speak('Reminder: '+e.title)}})},30000);
+draw();sync(true);setInterval(()=>sync(true),300000);if(window.Android){Android.setApps(D.set.apps);alarms();drain();setInterval(drain,5000);addEventListener('focus',()=>{drain();if(S.tab==6)draw()})}
+setInterval(()=>{if(D.set.sheet&&D.set.token){importGmail(1);importCal(1)}},900000);
+</script></body></html>
